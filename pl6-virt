@@ -1,0 +1,69 @@
+#!/usr/bin/env perl6
+
+sub MAIN (Str $dir is copy, Str :$perl6 = 'perl6') {
+  die "$dir already exists\n" if $dir.IO.e;
+
+
+  my $perlname = $perl6.IO.basename;
+  say "Named perl6 is $perlname";
+  my $bindir;
+  if ($perl6.IO.basename eq $perl6) {
+    # find it on the path
+    my @dirs = grep({ $_.IO.child($perlname).e }, $*SPEC.path);
+    die "Can't find $perl6\n" if not @dirs;
+    $bindir = @dirs[0];
+  } elsif ($perl6.IO.e and $perl6.IO.f) {
+    $bindir = $perl6.IO.parent.absolute;
+    say "Path to named perl6 is $bindir";
+  }
+  my $real_perl6;
+  if ($perlname ne 'perl6') {
+    $real_perl6 = $bindir.IO.child($perlname);
+  }
+
+  $dir = $dir.IO.abspath();
+  $dir.IO.mkdir();
+  $dir.IO.child("bin").mkdir();
+
+  if ($real_perl6) {
+    my $shim = $dir.IO.child("bin").child("perl6");
+    $shim.spurt("exec $real_perl6 \"\$@\"\n");
+    $shim.chmod($shim.mode +| 0o111);
+  }
+
+  my $activate = $dir.IO.child("bin").child("activate");
+  my $script = q:to[ACTIVATE] ;
+  PATH="#BINDIR#:$PATH"
+  VENV="#DIR#"
+
+  PATH="$VENV/bin:$PATH"
+  if [ $PERL6LIB ]; then
+    PERL6LIB="$VENV/lib:$PERL6LIB"
+  else
+    PERL6LIB="$VENV/lib"
+    export PERL6LIB
+  fi
+
+  zef () {
+    case "$1" in
+      install) command zef --install-to="inst#$VENV/lib" "$@";;
+      uninstall) command zef --uninstall-from="inst#$VENV/lib" "$@";;
+      *) command zef "$@";;
+    esac
+  }
+
+  # Doesn't work.
+  #PANDA_PREFIX="--prefix=inst#$VENV/lib"
+  # Still doesn't work.
+  PANDA_PREFIX="--prefix=$VENV/lib"
+  export PANDA_PREFIX
+  panda () { command panda "$PANDA_PREFIX" "$@"; }
+
+  PS1="(env) $PS1"
+  ACTIVATE
+
+  $script ~~ s:g/'#DIR#'/$dir/;
+  $script ~~ s:g/'#BINDIR#'/$bindir/;
+  $activate.IO.spurt($script);
+  $activate.IO.chmod($activate.IO.mode +| 0o111);
+}
