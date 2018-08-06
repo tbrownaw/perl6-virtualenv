@@ -6,6 +6,7 @@ sub MAIN (Str $dir is copy, Str :$perl6 = 'perl6') {
 
   my $perlname = $perl6.IO.basename;
   say "Named perl6 is $perlname";
+  say "Virtual environment goes to $dir";
   my $bindir;
   if ($perl6.IO.basename eq $perl6) {
     # find it on the path
@@ -21,7 +22,8 @@ sub MAIN (Str $dir is copy, Str :$perl6 = 'perl6') {
     $real_perl6 = $bindir.IO.child($perlname);
   }
 
-  $dir = $dir.IO.abspath();
+  $dir = $dir.IO.absolute();
+  my $basename = $dir.IO.basename();
   $dir.IO.mkdir();
   $dir.IO.child("bin").mkdir();
 
@@ -33,23 +35,43 @@ sub MAIN (Str $dir is copy, Str :$perl6 = 'perl6') {
 
   my $activate = $dir.IO.child("bin").child("activate");
   my $script = q:to[ACTIVATE] ;
+  _OLD_PERL6_VIRTUAL_PATH="$PATH"
+  _OLD_PERL6_VIRTUAL_PS1="$PS1"
+  _PL6_ENVNAME="#ENVNAME#"
   PATH="#BINDIR#:$PATH"
   VENV="#DIR#"
 
   PATH="$VENV/bin:$PATH"
   if [ $PERL6LIB ]; then
-    PERL6LIB="$VENV/lib:$PERL6LIB"
+    _OLD_PERL6LIB="$PERL6LIB"
+    PERL6LIB="inst#$VENV,$PERL6LIB"
   else
-    PERL6LIB="$VENV/lib"
-    export PERL6LIB
+    PERL6LIB="inst#$VENV"
   fi
+  export PERL6LIB
 
   zef () {
     case "$1" in
-      install) command zef --install-to="inst#$VENV/lib" "$@";;
-      uninstall) command zef --uninstall-from="inst#$VENV/lib" "$@";;
+      install) command zef --install-to="inst#$VENV" "$@";;
+      uninstall) command zef --uninstall-from="inst#$VENV" "$@";;
       *) command zef "$@";;
     esac
+  }
+  
+  deactivate () {
+    PATH="$_OLD_PERL6_VIRTUAL_PATH"
+    PS1="$_OLD_PERL6_VIRTUAL_PS1"
+    if [ -n "$_OLD_PERL6LIB" ] ; then
+      PERL6LIB="$_OLD_PERL6LIB"
+      unset _OLD_PERL6LIB
+    fi
+    
+    unset _OLD_PERL6_VIRTUAL_PATH
+    unset _OLD_PERL6_VIRTUAL_PS1
+    unset _PL6_ENVNAME
+    unset VENV
+    unset -f zef
+    unset -f deactivate
   }
 
   # Doesn't work.
@@ -59,11 +81,12 @@ sub MAIN (Str $dir is copy, Str :$perl6 = 'perl6') {
   export PANDA_PREFIX
   panda () { command panda "$PANDA_PREFIX" "$@"; }
 
-  PS1="(env) $PS1"
+  PS1="($_PL6_ENVNAME) $PS1"
   ACTIVATE
 
   $script ~~ s:g/'#DIR#'/$dir/;
   $script ~~ s:g/'#BINDIR#'/$bindir/;
+  $script ~~ s:g/'#ENVNAME#'/$basename/;
   $activate.IO.spurt($script);
   $activate.IO.chmod($activate.IO.mode +| 0o111);
 }
