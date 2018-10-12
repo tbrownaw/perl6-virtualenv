@@ -34,4 +34,5 @@ zef list --installed | grep -q YAMLish
 deactivate
 ! zef list --installed | grep -q YAMLish
 
-rm -f active.env deactivated.env setup.env
+rm -f active.env deactivated.env setup.env initial.env
+rm -rf env/
