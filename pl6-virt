@@ -76,13 +76,6 @@ sub MAIN (Str $dir is copy, Str :$perl6 = 'perl6') {
     unset -f deactivate
   }
 
-  # Doesn't work.
-  #PANDA_PREFIX="--prefix=inst#$VENV/lib"
-  # Still doesn't work.
-  PANDA_PREFIX="--prefix=$VENV/lib"
-  export PANDA_PREFIX
-  panda () { command panda "$PANDA_PREFIX" "$@"; }
-
   PS1="($_PL6_ENVNAME) $PS1"
   ACTIVATE
 
