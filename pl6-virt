@@ -64,6 +64,8 @@ sub MAIN (Str $dir is copy, Str :$perl6 = 'perl6') {
     if [ -n "$_OLD_PERL6LIB" ] ; then
       PERL6LIB="$_OLD_PERL6LIB"
       unset _OLD_PERL6LIB
+    else
+      unset PERL6LIB
     fi
     
     unset _OLD_PERL6_VIRTUAL_PATH
@@ -73,13 +75,6 @@ sub MAIN (Str $dir is copy, Str :$perl6 = 'perl6') {
     unset -f zef
     unset -f deactivate
   }
-
-  # Doesn't work.
-  #PANDA_PREFIX="--prefix=inst#$VENV/lib"
-  # Still doesn't work.
-  PANDA_PREFIX="--prefix=$VENV/lib"
-  export PANDA_PREFIX
-  panda () { command panda "$PANDA_PREFIX" "$@"; }
 
   PS1="($_PL6_ENVNAME) $PS1"
   ACTIVATE
