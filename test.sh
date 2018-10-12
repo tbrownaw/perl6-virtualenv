@@ -10,7 +10,7 @@ test -d env
 test -f env/bin/activate
 
 env >setup.env
-cmp initial.env setup.env
+cmp initial.env setup.env || diff initial.env setup.env
 
 . env/bin/activate
 
@@ -19,7 +19,7 @@ env >active.env
 deactivate
 
 env >deactivated.env
-cmp setup.env deactivated.env
+cmp setup.env deactivated.env || diff setup.env deactivated.env
 
 . env/bin/activate
 NUM_BEFORE=$(find env | wc -l)
