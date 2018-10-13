@@ -1,4 +1,4 @@
-# perl6-virtualenv
+# perl6-virtualenv [![Build Status](https://travis-ci.com/tbrownaw/perl6-virtualenv.svg?branch=master)](https://travis-ci.com/tbrownaw/perl6-virtualenv)
 
 Something like Python's virtualenv, but for Perl 6.
 
