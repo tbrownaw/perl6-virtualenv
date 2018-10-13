@@ -1,6 +1,7 @@
 #!/bin/bash
 
 set -e
+set -x
 
 env >initial.env
 
@@ -23,7 +24,7 @@ cmp setup.env deactivated.env || diff setup.env deactivated.env
 
 . env/bin/activate
 NUM_BEFORE=$(find env | wc -l)
-! zef list --installed | grep -q YAMLish
+(! zef list --installed | grep -q YAMLish)
 zef install YAMLish
 NUM_AFTER=$(find env | wc -l)
 
@@ -31,8 +32,13 @@ test $NUM_AFTER -gt $NUM_BEFORE
 
 zef list --installed | grep -q YAMLish
 
+(! zef list --installed | grep -q epoll)
+/bin/bash -c 'zef install epoll'
+zef list --installed | grep -q epoll
+
 deactivate
-! zef list --installed | grep -q YAMLish
+(! zef list --installed | grep -q YAMLish)
+(! zef list --installed | grep -q epoll)
 
 rm -f active.env deactivated.env setup.env initial.env
 rm -rf env/

@@ -33,13 +33,15 @@ sub MAIN (Str $dir is copy, Str :$perl6 = 'perl6') {
     $shim.chmod($shim.mode +| 0o111);
   }
 
-  my $activate = $dir.IO.child("bin").child("activate");
+  my $env_bindir = $dir.IO.child("bin");
+  my $activate = $env_bindir.child("activate");
   my $script = q:to[ACTIVATE] ;
   _OLD_PERL6_VIRTUAL_PATH="$PATH"
   _OLD_PERL6_VIRTUAL_PS1="$PS1"
   _PL6_ENVNAME="#ENVNAME#"
   PATH="#BINDIR#:$PATH"
   VENV="#DIR#"
+  export VENV
 
   PATH="$VENV/bin:$PATH"
   if [ $PERL6LIB ]; then
@@ -50,14 +52,6 @@ sub MAIN (Str $dir is copy, Str :$perl6 = 'perl6') {
   fi
   export PERL6LIB
 
-  zef () {
-    case "$1" in
-      install) command zef --install-to="inst#$VENV" "$@";;
-      uninstall) command zef --uninstall-from="inst#$VENV" "$@";;
-      *) command zef "$@";;
-    esac
-  }
-  
   deactivate () {
     PATH="$_OLD_PERL6_VIRTUAL_PATH"
     PS1="$_OLD_PERL6_VIRTUAL_PS1"
@@ -79,9 +73,30 @@ sub MAIN (Str $dir is copy, Str :$perl6 = 'perl6') {
   PS1="($_PL6_ENVNAME) $PS1"
   ACTIVATE
 
+  my $real_zef = q:x{which zef}.chomp;
+  my $zef = q:to[ZEF] ;
+  #!/bin/sh
+  REAL_ZEF="#ZEF#"
+  case "$1" in
+  	install) LOC="--install-to=inst#$VENV";;
+	uninstall) LOC="--uninstall-from=inst#$VENV";;
+	*) LOC= ;;
+  esac
+  if [ -z "$LOC" ]; then
+  	"$REAL_ZEF" "$@"
+  else
+  	"$REAL_ZEF" "$LOC" "$@"
+  fi
+  ZEF
+
   $script ~~ s:g/'#DIR#'/$dir/;
   $script ~~ s:g/'#BINDIR#'/$bindir/;
   $script ~~ s:g/'#ENVNAME#'/$basename/;
   $activate.IO.spurt($script);
   $activate.IO.chmod($activate.IO.mode +| 0o111);
+
+  $zef ~~ s:g/'#ZEF#'/$real_zef/;
+  my $zef_script = $env_bindir.child("zef").IO;
+  $zef_script.spurt($zef);
+  $zef_script.chmod($zef_script.mode +| 0o111);
 }
